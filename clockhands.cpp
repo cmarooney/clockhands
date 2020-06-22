@@ -3,12 +3,14 @@
 
 /*
 * Exercise to calculate the angle between the hands of the clock at a given time specified by integer hour and minute values.
-* This version assumes a standard 12 hour clock with 60 minute hours.
-* It assumes the hour hand moves smoothly between the hours.
-* Calculation is done twice: 
+* This version assumes a standard 12 hour clock with 60 minute hours - these parameters are hardcoded but as symbolic constants.
+* Extension by populating these parameters from a config file is possible.
+* Code assumes the hour hand moves smoothly between the hours. Setting min=0 for the second argument of the HourHand constructor will
+* convert to a rigid tick hour-hand.
+* Calculation is done twice:
 * method 1 uses the scalar product of the vectors representing the hands. It is more resource intensive (trigonometric functions)
 * but requires no further logic to get the angle in the right range, so useful for testing.
-* method 2 uses the hand angle wrt hour=12 directly to get the difference between the angles. This requires noting that the
+* method 2 uses the hand angle wrt vertical directly to get the difference between the angles. This requires noting that the
 * angle may be negative and/or reentrant and correct this.
 * Both answers are printed.
 * The program loops over successive inputs of hour and minute from the console until terminated by hour<0.
@@ -40,28 +42,26 @@ class Hand
 protected:
 	// value for time
 	double time;
-	// value of angle of real 2d vector wrt hour=12
+	// value of angle of real 2d vector wrt vertical
 	double angle;
 public:
-	Hand(double _val) : time(_val), angle(-666.0) {} // angle calc'd in subclasses, initialised to bad value
+	Hand(double _val, double scaling) : time(_val) { angle = to_angle(scaling); }
 	Vec2d vector_from_angle() const { return Vec2d(std::cos(angle), std::sin(angle)); }
 	double get_angle() const { return angle; }
+private:
+	double to_angle(double scaling) const { return time * twopi / scaling; }
 };
 
 class HourHand : public Hand
 {
 public:
-	HourHand(int _hval, int _mval) : Hand(_hval + _mval / MINS_PER_HOUR) { angle = to_angle(); }
-private:
-	double to_angle() const { return time * twopi / HOURS_PER_CLOCK; }
+	HourHand(int _hval, int _mval) : Hand(_hval + _mval / MINS_PER_HOUR, HOURS_PER_CLOCK) {}
 };
 
 class MinuteHand : public Hand
 {
 public:
-	MinuteHand(int _val) : Hand(_val) { angle = to_angle(); }
-private:
-	double to_angle() const { return time * twopi / MINS_PER_HOUR; }
+	MinuteHand(int _val) : Hand(_val, MINS_PER_HOUR) {}
 };
 
 
@@ -69,7 +69,7 @@ int main()
 {
 	while (true)
 	{
-		std::cout << "Hello World!\n";
+		std::cout << "------------------\n";
 		std::cout << "Input hour value (int, <0 to exit): ";
 		int hour;
 		std::cin >> hour;
@@ -81,13 +81,13 @@ int main()
 		const MinuteHand m(min);
 		const double cosangle = h.vector_from_angle() * m.vector_from_angle();
 		double angle = std::acos(cosangle) * 360.0 / twopi;
-		std::cout << "Angle between hands = " << angle << std::endl;
+		std::cout << "(Method 1) Angle between hands = " << angle << std::endl;
 		const double hangle = h.get_angle();
 		const double mangle = m.get_angle();
 		angle = std::fabs(hangle - mangle);
 		if (angle * 2.0 > twopi) angle = twopi - angle;
 		angle *= 360.0 / twopi;
-		std::cout << "Angle between hands = " << angle << std::endl;
+		std::cout << "(Method 2) Angle between hands = " << angle << std::endl;
 	}
 }
 
